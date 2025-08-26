@@ -17,14 +17,15 @@ sources = ["src"]
 [project]
 name = "etomofiles"
 dynamic = ["version"]
-description = "etomo metadata handling into dataframes"
+description = "A Python package for reading IMOD etomo alignment files into pandas DataFrames"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "BSD-3-Clause" }
 authors = [{ name = "Davide Torre", email = "davidetorre99@gmail.com" }]
+
 # https://pypi.org/classifiers/
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "License :: OSI Approved :: BSD License",
     "Programming Language :: Python :: 3",    
     "Programming Language :: Python :: 3.9",
@@ -34,17 +35,19 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Typing :: Typed",
 ]
-# add your package dependencies here
-dependencies = []
 
-# https://peps.python.org/pep-0621/#dependencies-optional-dependencies
-# add dependencies for "extra" features here.  Not dev dependencies.
-# [project.optional-dependencies]
-# name = ["dependency"]
+# Package dependencies
+dependencies = [
+    "numpy>=1.19.0",
+    "pandas>=1.3.0",
+    "mrcfile>=1.3.0",
+]
+
 
 [project.urls]
-homepage = "https://github.com/davidetorre99/etomofiles"
-repository = "https://github.com/davidetorre99/etomofiles"
+homepage = "https://github.com/teamtomo/etomofiles"
+repository = "https://github.com/teamtomo/etomofiles"
+issues = "https://github.com/teamtomo/etomofiles/issues"
 
 # Entry points
 # https://peps.python.org/pep-0621/#entry-points
@@ -78,7 +81,6 @@ line-length = 88
 target-version = "py39"
 src = ["src"]
 fix = true
-# unsafe-fixes = true
 
 [tool.ruff.lint]
 pydocstyle = { convention = "numpy" }
