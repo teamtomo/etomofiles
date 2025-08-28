@@ -20,6 +20,12 @@ A Python package for reading IMOD etomo alignment files into pandas DataFrames.
 - pandas ≥ 1.3.0
 - mrcfile ≥ 1.3.0
 
+## Installation
+
+```bash
+pip install etomofiles
+```
+
 ## Quick Start
 
 ```python
