@@ -7,6 +7,5 @@ github_username: davidetorre99
 mode: tooling
 module_name: etomofiles
 project_name: etomofiles
-project_short_description: 'A Python package for reading IMOD etomo alignment files
-    into pandas DataFrames '
+project_short_description: etomo metadata handling into dataframes
 
