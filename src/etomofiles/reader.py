@@ -6,7 +6,7 @@ into pandas DataFrames.
 """
 
 from pathlib import Path
-from typing import Union, Tuple, Set
+from typing import Tuple, Set
 import numpy as np
 import pandas as pd
 import mrcfile
@@ -15,7 +15,7 @@ from .io import read_tlt, read_xf, safe_read_tlt, safe_read_xf
 from .utils import validate_directory
 
 
-def read(directory: Union[str, Path]) -> pd.DataFrame:
+def read(directory: str | Path) -> pd.DataFrame:
     """
     Read etomo alignment metadata from a directory into a pandas DataFrame.
     

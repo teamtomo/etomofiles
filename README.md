@@ -6,7 +6,6 @@
 [![CI](https://github.com/teamtomo/etomofiles/actions/workflows/ci.yml/badge.svg)](https://github.com/teamtomo/etomofiles/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/teamtomo/etomofiles/branch/main/graph/badge.svg)](https://codecov.io/gh/teamtomo/etomofiles)
 
-
 A Python package for reading IMOD etomo alignment files into pandas DataFrames.
 
 ## Overview
@@ -16,7 +15,7 @@ A Python package for reading IMOD etomo alignment files into pandas DataFrames.
 
 ### Requirements
 
-- Python ≥ 3.7
+- Python ≥ 3.10
 - numpy ≥ 1.19.0
 - pandas ≥ 1.3.0
 - mrcfile ≥ 1.3.0
@@ -45,8 +44,7 @@ The resulting DataFrame contains the following columns:
 | `rawtlt` | Raw tilt angle (degrees) |
 | `tlt` | Corrected tilt angle (degrees) |
 | `xtilt` | Tilt around x-axis |
-| `a11`, `a12`, `a21`, `a22` | Transform matrix elements |
-| `dx`, `dy` | Translation components |
+| `xf_a11`, `xf_a12`, `xf_a21`, `xf_a22`, `xf_dx`, `xf_dy` | xf transformation matrix elements |
 | `excluded` | Boolean indicating if view was excluded |
 
 

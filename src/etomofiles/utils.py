@@ -5,10 +5,9 @@ This module provides helper functions.
 """
 
 from pathlib import Path
-from typing import Union
 
 
-def validate_directory(directory: Union[str, Path]) -> None:
+def validate_directory(directory: str | Path) -> None:
     """
     Validate that a directory exists and is accessible.
     
