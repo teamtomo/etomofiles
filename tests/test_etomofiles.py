@@ -15,7 +15,7 @@ from unittest.mock import patch, mock_open, MagicMock
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import etomofiles
-from etomofiles.io import read_tlt, read_xf
+from etomofiles.io import read_tlt, read_xf, safe_read_tlt, safe_read_xf
 from etomofiles.utils import validate_directory
 from etomofiles.reader import read, _parse_edf_file, _pad_array, _pad_transform
 
@@ -34,15 +34,15 @@ class TestIO:
     def test_read_tlt_file_not_exists(self):
         """Test tlt file reading when file doesn't exist."""
         with patch("os.path.exists", return_value=False):
-            result = read_tlt("nonexistent.tlt")
-            assert result is None
+            with pytest.raises(FileNotFoundError):
+                read_tlt("nonexistent.tlt")
     
     def test_read_tlt_exception(self):
-        """Test tlt file reading with exception."""
+        """Test tlt file reading with parsing exception."""
         with patch("os.path.exists", return_value=True):
             with patch("numpy.loadtxt", side_effect=Exception("Test error")):
-                result = read_tlt("test.tlt")
-                assert result is None
+                with pytest.raises(ValueError):
+                    read_tlt("test.tlt")
     
     def test_read_xf_success(self):
         """Test successful xf file reading."""
@@ -56,14 +56,44 @@ class TestIO:
     def test_read_xf_file_not_exists(self):
         """Test xf file reading when file doesn't exist."""
         with patch("os.path.exists", return_value=False):
-            result = read_xf("nonexistent.xf")
-            assert result is None
+            with pytest.raises(FileNotFoundError):
+                read_xf("nonexistent.xf")
     
     def test_read_xf_exception(self):
-        """Test xf file reading with exception."""
+        """Test xf file reading with parsing exception."""
         with patch("os.path.exists", return_value=True):
             with patch("numpy.loadtxt", side_effect=Exception("Test error")):
-                result = read_xf("test.xf")
+                with pytest.raises(ValueError):
+                    read_xf("test.xf")
+    
+    def test_safe_read_tlt_success(self):
+        """Test safe tlt file reading success."""
+        expected = np.array([-60.0, -58.0, -56.0])
+        with patch("os.path.exists", return_value=True):
+            with patch("numpy.loadtxt", return_value=expected):
+                result = safe_read_tlt("test.tlt")
+                np.testing.assert_array_equal(result, expected)
+    
+    def test_safe_read_tlt_failure(self):
+        """Test safe tlt file reading with failure."""
+        with patch("os.path.exists", return_value=False):
+            with pytest.warns(RuntimeWarning):
+                result = safe_read_tlt("nonexistent.tlt")
+                assert result is None
+    
+    def test_safe_read_xf_success(self):
+        """Test safe xf file reading success."""
+        expected = np.array([[1.0, 0.0, 0.0, 1.0, 0.0, 0.0]])
+        with patch("os.path.exists", return_value=True):
+            with patch("numpy.loadtxt", return_value=expected.flatten()):
+                result = safe_read_xf("test.xf")
+                np.testing.assert_array_equal(result, expected)
+    
+    def test_safe_read_xf_failure(self):
+        """Test safe xf file reading with failure."""
+        with patch("os.path.exists", return_value=False):
+            with pytest.warns(RuntimeWarning):
+                result = safe_read_xf("nonexistent.xf")
                 assert result is None
 
 
@@ -227,9 +257,9 @@ Setup.AxisA.ExcludeProjections=40
         return tmpdir
     
     @patch("mrcfile.open")
-    @patch("etomofiles.io.read_tlt")
-    @patch("etomofiles.io.read_xf")
-    def test_read_success(self, mock_read_xf, mock_read_tlt, mock_mrcfile):
+    @patch("etomofiles.reader.safe_read_tlt")
+    @patch("etomofiles.reader.safe_read_xf")
+    def test_read_success(self, mock_safe_read_xf, mock_safe_read_tlt, mock_mrcfile):
         """Test successful read operation."""
         # Mock mrcfile
         mock_header = MagicMock()
@@ -239,12 +269,12 @@ Setup.AxisA.ExcludeProjections=40
         mock_mrcfile.return_value = mock_mrc
         
         # Mock file readers
-        mock_read_tlt.side_effect = [
+        mock_safe_read_tlt.side_effect = [
             np.array([-60.0, -58.0]),  # tlt
             np.array([-60.5, -58.2]),  # rawtlt
             np.array([0.1, 0.2])       # xtilt
         ]
-        mock_read_xf.return_value = np.array([[1.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+        mock_safe_read_xf.return_value = np.array([[1.0, 0.0, 0.0, 1.0, 0.0, 0.0],
                                              [1.1, 0.1, 0.1, 1.1, 1.0, 2.0]])
         
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -258,7 +288,7 @@ Setup.AxisA.ExcludeProjections=40
             
             expected_columns = [
                 'image_path', 'idx_tilt', 'tilt_axis_angle', 'rawtlt', 'tlt', 
-                'xtilt', 'a11', 'a12', 'a21', 'a22', 'dx', 'dy', 'excluded'
+                'xtilt', 'xf_a11', 'xf_a12', 'xf_a21', 'xf_a22', 'xf_dx', 'xf_dy', 'excluded'
             ]
             assert list(result.columns) == expected_columns
             
@@ -291,9 +321,81 @@ class TestPackageImports:
     
     def test_package_exports(self):
         """Test that __all__ contains expected exports."""
-        expected_exports = ['read', 'read_tlt', 'read_xf']
+        expected_exports = ['read', 'read_tlt', 'read_xf', 'safe_read_tlt', 'safe_read_xf']
         for export in expected_exports:
             assert export in etomofiles.__all__
+
+
+class TestRealDataIntegration:
+    """Integration tests using real etomo data files."""
+    
+    def test_read_real_etomo_data(self):
+        """Test reading real etomo data from test directory."""
+        test_data_dir = Path(__file__).parent / "data" / "TS_001"
+        
+        # Skip if test data doesn't exist
+        if not test_data_dir.exists():
+            pytest.skip("Test data directory not found")
+        
+        df = read(test_data_dir)
+        
+        # Verify DataFrame structure
+        assert isinstance(df, pd.DataFrame)
+        assert len(df) > 0
+        
+        expected_columns = [
+            'image_path', 'idx_tilt', 'tilt_axis_angle', 'rawtlt', 'tlt', 
+            'xtilt', 'xf_a11', 'xf_a12', 'xf_a21', 'xf_a22', 'xf_dx', 'xf_dy', 'excluded'
+        ]
+        assert list(df.columns) == expected_columns
+        
+        # Verify data types and content
+        assert df['image_path'].dtype == 'object'
+        assert df['idx_tilt'].dtype in ['int64', 'int32']
+        assert all(df['image_path'].str.contains('TS_001.st\\[\\d+\\]', regex=True))
+        
+        # Verify we have some actual data (not all NaN)
+        assert df['rawtlt'].notna().sum() > 0
+        assert df['tlt'].notna().sum() > 0
+        assert df['xf_a11'].notna().sum() > 0
+        
+        print(f"✅ Integration test passed: {len(df)} images processed")
+    
+    def test_individual_file_reading(self):
+        """Test reading individual etomo files."""
+        test_data_dir = Path(__file__).parent / "data" / "TS_001"
+        
+        if not test_data_dir.exists():
+            pytest.skip("Test data directory not found")
+        
+        # Test reading individual files
+        tlt_file = test_data_dir / "TS_001.tlt"
+        if tlt_file.exists():
+            tlt_data = read_tlt(tlt_file)
+            assert isinstance(tlt_data, np.ndarray)
+            assert len(tlt_data) > 0
+        
+        xf_file = test_data_dir / "TS_001.xf" 
+        if xf_file.exists():
+            xf_data = read_xf(xf_file)
+            assert isinstance(xf_data, np.ndarray)
+            assert xf_data.shape[1] == 6  # Should have 6 columns
+        
+        print("✅ Individual file reading test passed")
+    
+    def test_safe_reading_with_missing_files(self):
+        """Test safe reading functions with missing optional files."""
+        test_data_dir = Path(__file__).parent / "data" / "TS_001"
+        
+        if not test_data_dir.exists():
+            pytest.skip("Test data directory not found")
+        
+        # Test reading a non-existent file
+        with pytest.warns(RuntimeWarning):
+            result = safe_read_tlt(test_data_dir / "nonexistent.tlt")
+            assert result is None
+        
+        print("✅ Safe reading test passed")
 
 
 if __name__ == "__main__":

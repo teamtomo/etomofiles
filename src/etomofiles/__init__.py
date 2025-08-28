@@ -6,11 +6,12 @@ and expose it as pandas DataFrames.
 """
 
 from .reader import read
-from .io import read_tlt, read_xf
-
+from .io import read_tlt, read_xf, safe_read_tlt, safe_read_xf
 
 __all__ = [
     "read",
     "read_tlt", 
-    "read_xf"
+    "read_xf",
+    "safe_read_tlt",
+    "safe_read_xf"
 ]

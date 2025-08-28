@@ -6,12 +6,12 @@ into pandas DataFrames.
 """
 
 from pathlib import Path
-from typing import Optional, Union, Tuple, Set
+from typing import Union, Tuple, Set
 import numpy as np
 import pandas as pd
 import mrcfile
 
-from .io import read_tlt, read_xf
+from .io import read_tlt, read_xf, safe_read_tlt, safe_read_xf
 from .utils import validate_directory
 
 
@@ -31,11 +31,10 @@ def read(directory: Union[str, Path]) -> pd.DataFrame:
         - image_path: Path to the specific image in tilt series (e.g., TS_001.st[0])
         - idx_tilt: Index of the tilt image (0-based)
         - tilt_axis_angle: Tilt axis rotation angle
-        - rawtlt: Raw tilt angle 
-        - tlt: Corrected tilt angle
-        - xtilt: Tilt around x-axis
-        - a11, a12, a21, a22: Transform matrix elements
-        - dx, dy: Translation components
+        - rawtlt: Raw tilt angle (degrees)
+        - tlt: Processed/corrected tilt angle (degrees)  
+        - xtilt: Additional tilt information
+        - xf_a11, xf_a12, xf_a21, xf_a22, xf_dx, xf_dy: xf transformation matrix elements
         - excluded: Boolean indicating if view was excluded
     """
     directory = Path(directory)
@@ -45,10 +44,10 @@ def read(directory: Union[str, Path]) -> pd.DataFrame:
     ts_name, ts_ext, tilt_axis_angle, excluded_views, n_images = _parse_edf_file(directory)
     
     # Read alignment files
-    tlt_data = read_tlt(directory / f"{ts_name}.tlt")
-    xf_data = read_xf(directory / f"{ts_name}.xf")
-    rawtlt_data = read_tlt(directory / f"{ts_name}.rawtlt")
-    xtilt_data = read_tlt(directory / f"{ts_name}.xtilt")
+    tlt_data = safe_read_tlt(directory / f"{ts_name}.tlt")
+    xf_data = safe_read_xf(directory / f"{ts_name}.xf")
+    rawtlt_data = safe_read_tlt(directory / f"{ts_name}.rawtlt")
+    xtilt_data = safe_read_tlt(directory / f"{ts_name}.xtilt")
     
     # Build DataFrame - each row is an image in the tilt series
     df = pd.DataFrame({
@@ -58,19 +57,19 @@ def read(directory: Union[str, Path]) -> pd.DataFrame:
         'rawtlt': _pad_array(rawtlt_data, n_images),
         'tlt': _pad_array(tlt_data, n_images),
         'xtilt': _pad_array(xtilt_data, n_images),
-        'a11': _pad_transform(xf_data, n_images, 0),
-        'a12': _pad_transform(xf_data, n_images, 1),
-        'a21': _pad_transform(xf_data, n_images, 2),
-        'a22': _pad_transform(xf_data, n_images, 3),
-        'dx': _pad_transform(xf_data, n_images, 4),
-        'dy': _pad_transform(xf_data, n_images, 5),
-        'excluded': [i + 1 in excluded_views for i in range(n_images)]
+        'xf_a11': _pad_transform(xf_data, n_images, 0),
+        'xf_a12': _pad_transform(xf_data, n_images, 1),
+        'xf_a21': _pad_transform(xf_data, n_images, 2),
+        'xf_a22': _pad_transform(xf_data, n_images, 3),
+        'xf_dx': _pad_transform(xf_data, n_images, 4),
+        'xf_dy': _pad_transform(xf_data, n_images, 5),
+        'excluded': [i in excluded_views for i in range(1, n_images + 1)]
     })
     
     return df
 
 
-def _parse_edf_file(directory: Path) -> Tuple[str, str, Optional[float], Set[int], int]:
+def _parse_edf_file(directory: Path) -> Tuple[str, str, float | None, Set[int], int]:
     """Parse .edf file to extract all primary metadata."""
     edf_files = list(directory.glob("*.edf"))
     if not edf_files:
@@ -130,7 +129,7 @@ def _parse_edf_file(directory: Path) -> Tuple[str, str, Optional[float], Set[int
     return ts_name, ts_ext, tilt_axis_angle, excluded_views, n_images
 
 
-def _pad_array(data: Optional[np.ndarray], n_images: int) -> list:
+def _pad_array(data: np.ndarray | None, n_images: int) -> list:
     """Pad array to n_images length with NaN."""
     if data is None:
         return [np.nan] * n_images
@@ -141,7 +140,7 @@ def _pad_array(data: Optional[np.ndarray], n_images: int) -> list:
     return result
 
 
-def _pad_transform(data: Optional[np.ndarray], n_images: int, col: int) -> list:
+def _pad_transform(data: np.ndarray | None, n_images: int, col: int) -> list:
     """Pad transform column to n_images length with NaN."""
     if data is None:
         return [np.nan] * n_images
