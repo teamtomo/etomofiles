@@ -56,7 +56,7 @@ import etomofiles
 df = etomofiles.read("TS_001/")
 
 # Get xf as numpy array:
-xf_matrices = etomofiles.xf_to_array(df)
+xf_matrices = etomofiles.df_to_xf(df)
 
 # Each matrix represents an affine transformation:
 # [[A11, A12, DX],
@@ -65,13 +65,13 @@ xf_matrices = etomofiles.xf_to_array(df)
 #       Y' = A21*X + A22*Y + DY
 
 # Also works directly with files
-xf_matrices = etomofiles.xf_to_array("TS_001/TS_001.xf")
+xf_matrices = etomofiles.df_to_xf("TS_001/TS_001.xf")
 
 # Choose row ordering convention
-xf_xy = etomofiles.xf_to_array(df)  # default xy
+xf_xy = etomofiles.df_to_xf(df)  # default xy
 # Each matrix is [[A11, A12, DX], [A21, A22, DY]]
 
-xf_yx = etomofiles.xf_to_array(df, yx=True)  # yx
+xf_yx = etomofiles.df_to_xf(df, yx=True)  # yx
 # Each matrix is [[A22, A21, DY], [A12, A11, DX]]
 
 ```

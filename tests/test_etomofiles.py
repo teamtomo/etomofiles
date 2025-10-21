@@ -15,17 +15,9 @@ from unittest.mock import patch, mock_open, MagicMock
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import etomofiles
-from etomofiles.data_model.tlt import TiltAngleData
-from etomofiles.data_model.transform import TransformData
-from etomofiles.data_model.edf import EdfData
-from etomofiles.utils import validate_directory, _pad_array, _pad_transform
+from etomofiles.data_model.edf import EtomoDataFile
+from etomofiles.utils import validate_directory, _pad_array, _pad_transform, read_tlt, read_xf, safe_read_tlt, safe_read_xf
 from etomofiles.io import read
-
-# Convenience aliases for tests
-read_tlt = TiltAngleData.read_tlt
-read_xf = TransformData.read_xf
-safe_read_tlt = TiltAngleData.safe_read_tlt
-safe_read_xf = TransformData.safe_read_xf
 
 
 class TestIO:
@@ -160,10 +152,10 @@ Setup.AxisA.ExcludeProjections=40
             mock_mrc.__enter__.return_value.header = mock_header
             
             with patch("mrcfile.open", return_value=mock_mrc):
-                result = EdfData.from_directory(tmpdir)
+                result = EtomoDataFile.from_directory(tmpdir)
                 
-            assert result.ts_name == "TS_001"
-            assert result.ts_ext == "st"
+            assert result.basename == "TS_001"
+            assert result.tilt_series_extension == "st"
             assert result.tilt_axis_angle == 83.9
             assert result.excluded_views == {40}
             assert result.n_images == 40
@@ -172,7 +164,7 @@ Setup.AxisA.ExcludeProjections=40
         """Test .edf file parsing when no .edf file exists."""
         with tempfile.TemporaryDirectory() as tmpdir:
             with pytest.raises(FileNotFoundError, match="No .edf file found"):
-                EdfData.from_directory(Path(tmpdir))
+                EtomoDataFile.from_directory(Path(tmpdir))
     
     def test_parse_edf_file_missing_dataset_name(self):
         """Test .edf file parsing when DatasetName is missing."""
@@ -186,7 +178,7 @@ Setup.AxisA.ExcludeProjections=40
                 f.write(edf_content)
             
             with pytest.raises(ValueError, match="Setup.DatasetName not found"):
-                EdfData.from_directory(tmpdir)
+                EtomoDataFile.from_directory(tmpdir)
     
     def test_pad_array_with_data(self):
         """Test array padding with data."""
@@ -263,8 +255,8 @@ Setup.AxisA.ExcludeProjections=40
         return tmpdir
     
     @patch("mrcfile.open")
-    @patch("etomofiles.data_model.tlt.TiltAngleData.safe_read_tlt")
-    @patch("etomofiles.data_model.transform.TransformData.safe_read_xf")
+    @patch("etomofiles.utils.safe_read_tlt")
+    @patch("etomofiles.utils.safe_read_xf")
     def test_read_success(self, mock_safe_read_xf, mock_safe_read_tlt, mock_mrcfile):
         """Test successful read operation."""
         # Mock mrcfile
@@ -327,7 +319,7 @@ class TestPackageImports:
     
     def test_package_exports(self):
         """Test that __all__ contains expected exports."""
-        expected_exports = ['read', 'read_tlt', 'read_xf', 'safe_read_tlt', 'safe_read_xf']
+        expected_exports = ['read', 'xf_to_array', 'read_tlt', 'read_xf', '__version__']
         for export in expected_exports:
             assert export in etomofiles.__all__
 

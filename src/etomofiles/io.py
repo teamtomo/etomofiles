@@ -1,8 +1,4 @@
-"""Main I/O module for reading etomo files.
-
-This module provides the main read function for parsing etomo alignment data
-into pandas DataFrames.
-"""
+"""Main I/O module for reading etomo files."""
 
 from pathlib import Path
 
@@ -32,19 +28,6 @@ def read(directory: str | Path) -> pd.DataFrame:
         - xtilt: Additional tilt information
         - xf_a11, xf_a12, xf_a21, xf_a22, xf_dx, xf_dy: xf transformation matrix elements
         - excluded: Boolean indicating if view was excluded
-        
-    Raises
-    ------
-    ValueError
-        If directory doesn't exist or is not a directory
-    FileNotFoundError
-        If required files (.edf, tilt series) are not found
-        
-    Examples
-    --------
-    >>> import etomofiles
-    >>> df = etomofiles.read("TS_001/")
-    >>> df.head()
     """
     # Validate directory
     directory = Path(directory)

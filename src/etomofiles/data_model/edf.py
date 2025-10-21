@@ -7,24 +7,24 @@ import mrcfile
 from pydantic import BaseModel, Field
 
 
-class EdfData(BaseModel):
-    """Data model for IMOD .edf (etomo directive file) metadata.
+class EtomoDataFile(BaseModel):
+    """Data model for IMOD .edf metadata.
     
     Attributes:
-        ts_name: Tilt series dataset name
-        ts_ext: Tilt series file extension (e.g., 'st', 'mrc')
-        tilt_axis_angle: Rotation angle of tilt axis (degrees)
+        basename: Tilt series name
+        tilt_series_extension: Tilt series file extension (e.g., 'st', 'mrc')
+        tilt_axis_angle: Tilt axis rotation angle (degrees)
         excluded_views: Set of view indices (1-indexed) to exclude from reconstruction
         n_images: Total number of images in the tilt series
     """
-    ts_name: str
-    ts_ext: str
+    basename: str
+    tilt_series_extension: str
     tilt_axis_angle: float | None = None
     excluded_views: Set[int] = Field(default_factory=set)
     n_images: int = 0
 
     @classmethod
-    def from_string(cls, edf_text: str, directory: Path) -> "EdfData":
+    def from_string(cls, edf_text: str, directory: Path) -> "EtomoDataFile":
         """Parse .edf file content.
         
         Parameters
@@ -46,8 +46,8 @@ class EdfData(BaseModel):
         FileNotFoundError
             If tilt series file not found
         """
-        ts_name = None
-        ts_ext = None
+        basename = None
+        tilt_series_extension = None
         tilt_axis_angle = None
         excluded_views = set()
         
@@ -62,9 +62,9 @@ class EdfData(BaseModel):
             value = value.strip()
             
             if key == 'Setup.DatasetName':
-                ts_name = value
+                basename = value
             elif key == 'Setup.RawImageStackExt':
-                ts_ext = value
+                tilt_series_extension = value
             elif key == 'Setup.ImageRotationA':
                 try:
                     tilt_axis_angle = float(value) if value else None
@@ -80,13 +80,13 @@ class EdfData(BaseModel):
                         elif part.isdigit():
                             excluded_views.add(int(part))
         
-        if not ts_name:
+        if not basename:
             raise ValueError("Setup.DatasetName not found in .edf file")
-        if not ts_ext:
+        if not tilt_series_extension:
             raise ValueError("Setup.RawImageStackExt not found in .edf file")
         
         # Get number of images from MRC header
-        ts_file = directory / f"{ts_name}.{ts_ext}"
+        ts_file = directory / f"{basename}.{tilt_series_extension}"
         if not ts_file.exists():
             raise FileNotFoundError(f"Tilt series file not found: {ts_file}")
         
@@ -97,15 +97,15 @@ class EdfData(BaseModel):
             raise ValueError("Cannot determine number of images from stack")
         
         return cls(
-            ts_name=ts_name,
-            ts_ext=ts_ext,
+            basename=basename,
+            tilt_series_extension=tilt_series_extension,
             tilt_axis_angle=tilt_axis_angle,
             excluded_views=excluded_views,
             n_images=n_images,
         )
 
     @classmethod
-    def from_file(cls, edf_file: Path) -> "EdfData":
+    def from_file(cls, edf_file: Path) -> "EtomoDataFile":
         """Load EdfData from a .edf file.
         
         Parameters
@@ -138,7 +138,7 @@ class EdfData(BaseModel):
         return cls.from_string(content, directory)
     
     @classmethod
-    def from_directory(cls, directory: Path) -> "EdfData":
+    def from_directory(cls, directory: Path) -> "EtomoDataFile":
         """Parse .edf file from a directory containing etomo alignment files.
         
         Parameters
@@ -166,6 +166,6 @@ class EdfData(BaseModel):
     
     def __repr__(self) -> str:
         """Return string representation."""
-        return (f"EdfData(ts_name='{self.ts_name}', ts_ext='{self.ts_ext}', "
+        return (f"EtomoDataFile(basename='{self.basename}', tilt_series_extension='{self.tilt_series_extension}', "
                 f"tilt_axis_angle={self.tilt_axis_angle}, n_images={self.n_images}, "
                 f"excluded={len(self.excluded_views)} views)")

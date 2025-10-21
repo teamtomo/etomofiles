@@ -1,11 +1,15 @@
 """Utility functions for etomo file processing and DataFrame conversion."""
 
+import os
+import warnings
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 
-from .data_model.etomo_data import EtomoData
+if TYPE_CHECKING:
+    from .data_model.etomo_data import EtomoData
 
 
 def validate_directory(directory: str | Path) -> None:
@@ -28,10 +32,92 @@ def validate_directory(directory: str | Path) -> None:
         raise ValueError(f"Path is not a directory: {directory}")
 
 
-def etomo_to_dataframe(etomo_data: EtomoData) -> pd.DataFrame:
-    """Convert EtomoData to a pandas DataFrame.
+def read_tlt(file: os.PathLike) -> np.ndarray:
+    """Read an IMOD tlt file into an (n, ) numpy array.
     
-    Each row in the DataFrame represents one tilt image in the series.
+    Parameters
+    ----------
+    file : os.PathLike
+        Path to the tlt file
+        
+    Returns
+    -------
+    np.ndarray
+        Array of tilt angles
+    """
+    if not os.path.exists(file):
+        raise FileNotFoundError(f"File not found: {file}")
+    
+    try:
+        return np.loadtxt(fname=file, dtype=float).reshape(-1)
+    except Exception as e:
+        raise ValueError(f"Cannot parse file {file}: {e}") from e
+
+
+def safe_read_tlt(file: os.PathLike) -> np.ndarray | None:
+    """Safely read an IMOD tlt file, returning None if it fails.
+    
+    Parameters
+    ----------
+    file : os.PathLike
+        Path to the tlt file
+        
+    Returns
+    -------
+    np.ndarray | None
+        Array of tilt angles, or None if file doesn't exist or can't be read.
+    """
+    try:
+        return read_tlt(file)
+    except (FileNotFoundError, ValueError) as e:
+        warnings.warn(f"Skipping {file}: {e}", RuntimeWarning)
+        return None
+
+
+def read_xf(file: os.PathLike) -> np.ndarray:
+    """Read an IMOD xf file into an (n, 6) numpy array.
+    
+    Parameters
+    ----------
+    file : os.PathLike
+        Path to the xf file
+        
+    Returns
+    -------
+    np.ndarray
+        Array of transformation parameters with shape (n, 6)
+    """
+    if not os.path.exists(file):
+        raise FileNotFoundError(f"File not found: {file}")
+    
+    try:
+        return np.loadtxt(fname=file, dtype=float).reshape(-1, 6)
+    except Exception as e:
+        raise ValueError(f"Cannot parse file {file}: {e}") from e
+
+
+def safe_read_xf(file: os.PathLike) -> np.ndarray | None:
+    """Safely read an IMOD xf file, returning None if it fails.
+    
+    Parameters
+    ----------
+    file : os.PathLike
+        Path to the xf file
+        
+    Returns
+    -------
+    np.ndarray | None
+        Array of transformation parameters, or None if file doesn't exist or can't be read.
+    """
+    try:
+        return read_xf(file)
+    except (FileNotFoundError, ValueError) as e:
+        warnings.warn(f"Skipping {file}: {e}", RuntimeWarning)
+        return None
+
+
+def etomo_to_dataframe(etomo_data: "EtomoData") -> pd.DataFrame:
+    """Convert EtomoData to a pandas DataFrame.
     
     Parameters
     ----------
@@ -51,29 +137,24 @@ def etomo_to_dataframe(etomo_data: EtomoData) -> pd.DataFrame:
         - xf_a11, xf_a12, xf_a21, xf_a22, xf_dx, xf_dy: xf transformation matrix elements
         - excluded: Boolean indicating if view was excluded
     """
-    edf = etomo_data.edf_metadata
-    tilt = etomo_data.tilt_angles
-    xf = etomo_data.transforms
+    n_images = etomo_data.n_images
+    basename = etomo_data.basename
+    ext = etomo_data.tilt_series_extension
     
-    n_images = edf.n_images
-    ts_name = edf.ts_name
-    ts_ext = edf.ts_ext
-    
-    # Build DataFrame - each row is an image in the tilt series
     df = pd.DataFrame({
-        'image_path': [f"{ts_name}.{ts_ext}[{i}]" for i in range(n_images)],
+        'image_path': [f"{basename}.{ext}[{i}]" for i in range(n_images)],
         'idx_tilt': range(n_images),
-        'tilt_axis_angle': edf.tilt_axis_angle,
-        'rawtlt': _pad_array(tilt.rawtlt, n_images),
-        'tlt': _pad_array(tilt.tlt, n_images),
-        'xtilt': _pad_array(tilt.xtilt, n_images),
-        'xf_a11': _pad_transform(xf.transforms, n_images, 0),
-        'xf_a12': _pad_transform(xf.transforms, n_images, 1),
-        'xf_a21': _pad_transform(xf.transforms, n_images, 2),
-        'xf_a22': _pad_transform(xf.transforms, n_images, 3),
-        'xf_dx': _pad_transform(xf.transforms, n_images, 4),
-        'xf_dy': _pad_transform(xf.transforms, n_images, 5),
-        'excluded': [i in edf.excluded_views for i in range(1, n_images + 1)]
+        'tilt_axis_angle': etomo_data.tilt_axis_angle,
+        'rawtlt': _pad_array(etomo_data.rawtlt, n_images),
+        'tlt': _pad_array(etomo_data.tlt, n_images),
+        'xtilt': _pad_array(etomo_data.xtilt, n_images),
+        'xf_a11': _pad_transform(etomo_data.xf, n_images, 0),
+        'xf_a12': _pad_transform(etomo_data.xf, n_images, 1),
+        'xf_a21': _pad_transform(etomo_data.xf, n_images, 2),
+        'xf_a22': _pad_transform(etomo_data.xf, n_images, 3),
+        'xf_dx': _pad_transform(etomo_data.xf, n_images, 4),
+        'xf_dy': _pad_transform(etomo_data.xf, n_images, 5),
+        'excluded': [i in etomo_data.excluded_views for i in range(1, n_images + 1)]
     })
     
     return df

@@ -1,29 +1,43 @@
 """Main container data model for IMOD etomo alignment data."""
 
 from pathlib import Path
+from typing import Set
 
-from pydantic import BaseModel, Field
+import numpy as np
+from pydantic import BaseModel, ConfigDict, Field
 
-from .edf import EdfData
-from .tlt import TiltAngleData
-from .transform import TransformData
+from .edf import EtomoDataFile
+from .. import utils
+
 
 
 class EtomoData(BaseModel):
     """Data model for IMOD etomo alignment data.
     
-    This is the main container that holds all parsed etomo file data including
-    metadata from the .edf file, tilt angles from .tlt/.rawtlt/.xtilt files,
-    and transformations from .xf files.
+    This is the main container that holds all parsed etomo file data.
     
     Attributes:
-        edf_metadata: Parsed .edf file metadata (dataset name, tilt axis, exclusions, etc.)
-        tilt_angles: Tilt angle data from .tlt, .rawtlt, and .xtilt files
-        transforms: Transformation data from .xf file
+        basename: Tilt series name (e.g., 'TS_001')
+        tilt_series_extension: File extension (e.g., 'st', 'mrc')
+        tilt_axis_angle: Tilt axis rotation angle (degrees)
+        excluded_views: Set of view indices (1-indexed) to exclude
+        n_images: Total number of images in the tilt series
+        xf: Transformation parameters from .xf file, shape (n, 6)
+        tlt: tilt angles from .tlt file
+        rawtlt: Raw tilt angles from .rawtlt file
+        xtilt: x-axis tilt information from .xtilt file
     """
-    edf_metadata: EdfData
-    tilt_angles: TiltAngleData
-    transforms: TransformData
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    
+    basename: str
+    tilt_series_extension: str
+    tilt_axis_angle: float | None = None
+    excluded_views: Set[int] = Field(default_factory=set)
+    n_images: int = 0
+    xf: np.ndarray | None = None
+    tlt: np.ndarray | None = None
+    rawtlt: np.ndarray | None = None
+    xtilt: np.ndarray | None = None
 
     @classmethod
     def from_directory(cls, directory: Path) -> "EtomoData":
@@ -32,47 +46,38 @@ class EtomoData(BaseModel):
         Parameters
         ----------
         directory : Path
-            Directory containing etomo alignment files (.edf, .tlt, .xf, etc.)
+            Directory containing etomo alignment files
             
         Returns
         -------
         EtomoData
             Parsed etomo alignment data
-            
-        Raises
-        ------
-        FileNotFoundError
-            If required files (.edf, tilt series) are not found
-        ValueError
-            If .edf file is malformed or missing required fields
-        
-        Examples
-        --------
-        >>> from pathlib import Path
-        >>> etomo_data = EtomoData.from_directory(Path("TS_001/"))
-        >>> etomo_data.edf_metadata.n_images
-        41
-        >>> etomo_data.tilt_angles.tlt
-        array([-60., -58., ...])
         """
-        # Parse .edf file first to get metadata
-        edf_metadata = EdfData.from_directory(directory)
         
-        # Load tilt angle files using the ts_name from .edf
-        tilt_angles = TiltAngleData.from_directory(directory, edf_metadata.ts_name)
+        edf_metadata = EtomoDataFile.from_directory(directory)
         
-        # Load transformation file
-        transforms = TransformData.from_directory(directory, edf_metadata.ts_name)
+        basename = edf_metadata.basename
+        
+        tlt_data = utils.safe_read_tlt(directory / f"{basename}.tlt")
+        rawtlt_data = utils.safe_read_tlt(directory / f"{basename}.rawtlt")
+        xtilt_data = utils.safe_read_tlt(directory / f"{basename}.xtilt")
+        xf_data = utils.safe_read_xf(directory / f"{basename}.xf")
         
         return cls(
-            edf_metadata=edf_metadata,
-            tilt_angles=tilt_angles,
-            transforms=transforms,
+            basename=basename,
+            tilt_series_extension=edf_metadata.tilt_series_extension,
+            tilt_axis_angle=edf_metadata.tilt_axis_angle,
+            excluded_views=edf_metadata.excluded_views,
+            n_images=edf_metadata.n_images,
+            xf=xf_data,
+            tlt=tlt_data,
+            rawtlt=rawtlt_data,
+            xtilt=xtilt_data,
         )
     
     def __repr__(self) -> str:
         """Return string representation."""
-        return (f"EtomoData(ts_name='{self.edf_metadata.ts_name}', "
-                f"n_images={self.edf_metadata.n_images}, "
-                f"has_tlt={self.tilt_angles.tlt is not None}, "
-                f"has_transforms={self.transforms.transforms is not None})")
+        return (f"EtomoData(basename='{self.basename}', "
+                f"n_images={self.n_images}, "
+                f"has_tlt={self.tlt is not None}, "
+                f"has_xf={self.xf is not None})")
