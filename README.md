@@ -12,14 +12,6 @@ A Python package for reading IMOD etomo alignment files into pandas DataFrames.
 
 `etomofiles` provides a way to extract metadata from etomo alignment directories and convert them into structured pandas DataFrames. 
 
-
-### Requirements
-
-- Python ≥ 3.10
-- numpy ≥ 1.19.0
-- pandas ≥ 1.3.0
-- mrcfile ≥ 1.3.0
-
 ## Installation
 
 ```bash
@@ -30,12 +22,15 @@ pip install etomofiles
 
 ```python
 import etomofiles
-from pathlib import Path
 
 # Read etomo alignment data
 df = etomofiles.read("/path/to/etomo/directory")
 
 print(df.head())
+
+# Convert to IMOD transformation matrices
+xf_matrices = etomofiles.xf_to_array(df)  # Returns (n_tilts, 2, 3) array
+# Each matrix is [[A11, A12, DX], [A21, A22, DY]]
 ```
 
 ## DataFrame Columns
@@ -53,5 +48,36 @@ The resulting DataFrame contains the following columns:
 | `xf_a11`, `xf_a12`, `xf_a21`, `xf_a22`, `xf_dx`, `xf_dy` | xf transformation matrix elements |
 | `excluded` | Boolean indicating if view was excluded |
 
+## IMOD Utilities
+
+Convert transformation data to matrix format for further processing:
+
+```python
+import etomofiles
+
+# Read alignment data
+df = etomofiles.read("TS_001/")
+
+# Convert to transformation matrices (n_tilts, 2, 3)
+xf_matrices = etomofiles.xf_to_array(df)
+
+# Each matrix represents a 2D affine transformation:
+# [[A11, A12, DX],
+#  [A21, A22, DY]]
+# where X' = A11*X + A12*Y + DX
+#       Y' = A21*X + A22*Y + DY
+
+# Also works directly with files
+xf_matrices = etomofiles.xf_to_array("TS_001/TS_001.xf")
+
+# Or with raw numpy arrays
+import numpy as np
+xf_data = np.loadtxt("TS_001/TS_001.xf")
+xf_matrices = etomofiles.xf_to_array(xf_data)
+
+# Choose row ordering convention
+xf_xy = etomofiles.xf_to_array(df, convention="xy")  # default
+xf_yx = etomofiles.xf_to_array(df, convention="yx")  # swapped rows
+```
 
 
