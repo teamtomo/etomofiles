@@ -28,9 +28,6 @@ df = etomofiles.read("/path/to/etomo/directory")
 
 print(df.head())
 
-# Convert to IMOD transformation matrices
-xf_matrices = etomofiles.xf_to_array(df)  # Returns (n_tilts, 2, 3) array
-# Each matrix is [[A11, A12, DX], [A21, A22, DY]]
 ```
 
 ## DataFrame Columns
@@ -48,9 +45,9 @@ The resulting DataFrame contains the following columns:
 | `xf_a11`, `xf_a12`, `xf_a21`, `xf_a22`, `xf_dx`, `xf_dy` | xf transformation matrix elements |
 | `excluded` | Boolean indicating if view was excluded |
 
-## IMOD Utilities
+## xf Utilities
 
-Convert transformation data to matrix format for further processing:
+Get xf as numpy array:
 
 ```python
 import etomofiles
@@ -58,10 +55,10 @@ import etomofiles
 # Read alignment data
 df = etomofiles.read("TS_001/")
 
-# Convert to transformation matrices (n_tilts, 2, 3)
+# Get xf as numpy array:
 xf_matrices = etomofiles.xf_to_array(df)
 
-# Each matrix represents a 2D affine transformation:
+# Each matrix represents an affine transformation:
 # [[A11, A12, DX],
 #  [A21, A22, DY]]
 # where X' = A11*X + A12*Y + DX
@@ -70,14 +67,13 @@ xf_matrices = etomofiles.xf_to_array(df)
 # Also works directly with files
 xf_matrices = etomofiles.xf_to_array("TS_001/TS_001.xf")
 
-# Or with raw numpy arrays
-import numpy as np
-xf_data = np.loadtxt("TS_001/TS_001.xf")
-xf_matrices = etomofiles.xf_to_array(xf_data)
-
 # Choose row ordering convention
-xf_xy = etomofiles.xf_to_array(df, convention="xy")  # default
-xf_yx = etomofiles.xf_to_array(df, convention="yx")  # swapped rows
+xf_xy = etomofiles.xf_to_array(df)  # default xy
+# Each matrix is [[A11, A12, DX], [A21, A22, DY]]
+
+xf_yx = etomofiles.xf_to_array(df, yx=True)  # yx
+# Each matrix is [[A22, A21, DY], [A12, A11, DX]]
+
 ```
 
 
