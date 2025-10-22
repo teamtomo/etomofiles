@@ -3,7 +3,7 @@
 from importlib.metadata import PackageNotFoundError, version
 
 from .io import read
-from .imod_utils import xf_to_array
+from .imod_utils import df_to_xf
 from .utils import read_tlt, read_xf
 
 try:
@@ -13,7 +13,7 @@ except PackageNotFoundError:
 
 __all__ = [
     "read",
-    "xf_to_array",
+    "df_to_xf",
     "read_tlt",
     "read_xf",
     "__version__",

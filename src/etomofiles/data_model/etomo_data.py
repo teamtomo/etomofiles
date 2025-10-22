@@ -6,12 +6,12 @@ from typing import Set
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field
 
-from .edf import EtomoDataFile
 from .. import utils
+from ..imod_utils import parse_edf
 
 
 
-class EtomoData(BaseModel):
+class EtomoDataFile(BaseModel):
     """Data model for IMOD etomo alignment data.
     
     This is the main container that holds all parsed etomo file data.
@@ -40,7 +40,7 @@ class EtomoData(BaseModel):
     xtilt: np.ndarray | None = None
 
     @classmethod
-    def from_directory(cls, directory: Path) -> "EtomoData":
+    def from_directory(cls, directory: Path) -> "EtomoDataFile":
         """Load etomo alignment data from a directory.
         
         Parameters
@@ -50,13 +50,13 @@ class EtomoData(BaseModel):
             
         Returns
         -------
-        EtomoData
+        EtomoDataFile
             Parsed etomo alignment data
         """
         
-        edf_metadata = EtomoDataFile.from_directory(directory)
+        edf_metadata = parse_edf(directory)
         
-        basename = edf_metadata.basename
+        basename = edf_metadata["basename"]
         
         tlt_data = utils.safe_read_tlt(directory / f"{basename}.tlt")
         rawtlt_data = utils.safe_read_tlt(directory / f"{basename}.rawtlt")
@@ -65,10 +65,10 @@ class EtomoData(BaseModel):
         
         return cls(
             basename=basename,
-            tilt_series_extension=edf_metadata.tilt_series_extension,
-            tilt_axis_angle=edf_metadata.tilt_axis_angle,
-            excluded_views=edf_metadata.excluded_views,
-            n_images=edf_metadata.n_images,
+            tilt_series_extension=edf_metadata["tilt_series_extension"],
+            tilt_axis_angle=edf_metadata["tilt_axis_angle"],
+            excluded_views=edf_metadata["excluded_views"],
+            n_images=edf_metadata["n_images"],
             xf=xf_data,
             tlt=tlt_data,
             rawtlt=rawtlt_data,
@@ -77,7 +77,7 @@ class EtomoData(BaseModel):
     
     def __repr__(self) -> str:
         """Return string representation."""
-        return (f"EtomoData(basename='{self.basename}', "
+        return (f"EtomoDataFile(basename='{self.basename}', "
                 f"n_images={self.n_images}, "
                 f"has_tlt={self.tlt is not None}, "
                 f"has_xf={self.xf is not None})")

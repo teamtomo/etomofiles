@@ -15,7 +15,7 @@ from unittest.mock import patch, mock_open, MagicMock
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import etomofiles
-from etomofiles.data_model.edf import EtomoDataFile
+from etomofiles.imod_utils import parse_edf
 from etomofiles.utils import validate_directory, _pad_array, _pad_transform, read_tlt, read_xf, safe_read_tlt, safe_read_xf
 from etomofiles.io import read
 
@@ -152,19 +152,19 @@ Setup.AxisA.ExcludeProjections=40
             mock_mrc.__enter__.return_value.header = mock_header
             
             with patch("mrcfile.open", return_value=mock_mrc):
-                result = EtomoDataFile.from_directory(tmpdir)
+                result = parse_edf(tmpdir)
                 
-            assert result.basename == "TS_001"
-            assert result.tilt_series_extension == "st"
-            assert result.tilt_axis_angle == 83.9
-            assert result.excluded_views == {40}
-            assert result.n_images == 40
+            assert result["basename"] == "TS_001"
+            assert result["tilt_series_extension"] == "st"
+            assert result["tilt_axis_angle"] == 83.9
+            assert result["excluded_views"] == {40}
+            assert result["n_images"] == 40
     
     def test_parse_edf_file_no_edf(self):
         """Test .edf file parsing when no .edf file exists."""
         with tempfile.TemporaryDirectory() as tmpdir:
             with pytest.raises(FileNotFoundError, match="No .edf file found"):
-                EtomoDataFile.from_directory(Path(tmpdir))
+                parse_edf(Path(tmpdir))
     
     def test_parse_edf_file_missing_dataset_name(self):
         """Test .edf file parsing when DatasetName is missing."""
@@ -178,7 +178,7 @@ Setup.AxisA.ExcludeProjections=40
                 f.write(edf_content)
             
             with pytest.raises(ValueError, match="Setup.DatasetName not found"):
-                EtomoDataFile.from_directory(tmpdir)
+                parse_edf(tmpdir)
     
     def test_pad_array_with_data(self):
         """Test array padding with data."""
@@ -319,7 +319,7 @@ class TestPackageImports:
     
     def test_package_exports(self):
         """Test that __all__ contains expected exports."""
-        expected_exports = ['read', 'xf_to_array', 'read_tlt', 'read_xf', '__version__']
+        expected_exports = ['read', 'df_to_xf', 'read_tlt', 'read_xf', '__version__']
         for export in expected_exports:
             assert export in etomofiles.__all__
 

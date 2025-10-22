@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from .data_model import EtomoData
+from .data_model import EtomoDataFile
 from .utils import etomo_to_dataframe, validate_directory
 
 
@@ -34,7 +34,7 @@ def read(directory: str | Path) -> pd.DataFrame:
     validate_directory(directory)
 
     # Load alignment data using data models
-    etomo_data = EtomoData.from_directory(directory)
+    etomo_data = EtomoDataFile.from_directory(directory)
 
     # Convert to DataFrame
     return etomo_to_dataframe(etomo_data)

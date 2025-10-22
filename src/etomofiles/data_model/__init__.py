@@ -1,9 +1,7 @@
 """Data models for IMOD etomo alignment files."""
 
-from .edf import EtomoDataFile
-from .etomo_data import EtomoData
+from .etomo_data import EtomoDataFile
 
 __all__ = [
     "EtomoDataFile",
-    "EtomoData",
 ]

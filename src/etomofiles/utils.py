@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 if TYPE_CHECKING:
-    from .data_model.etomo_data import EtomoData
+    from .data_model.etomo_data import EtomoDataFile # break circular import
 
 
 def validate_directory(directory: str | Path) -> None:
@@ -116,12 +116,12 @@ def safe_read_xf(file: os.PathLike) -> np.ndarray | None:
         return None
 
 
-def etomo_to_dataframe(etomo_data: "EtomoData") -> pd.DataFrame:
-    """Convert EtomoData to a pandas DataFrame.
+def etomo_to_dataframe(etomo_data: "EtomoDataFile") -> pd.DataFrame:
+    """Convert EtomoDataFile to a pandas DataFrame.
     
     Parameters
     ----------
-    etomo_data : EtomoData
+    etomo_data : EtomoDataFile
         Parsed etomo alignment data
         
     Returns
