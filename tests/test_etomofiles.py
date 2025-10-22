@@ -15,9 +15,9 @@ from unittest.mock import patch, mock_open, MagicMock
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import etomofiles
-from etomofiles.io import read_tlt, read_xf, safe_read_tlt, safe_read_xf
-from etomofiles.utils import validate_directory
-from etomofiles.reader import read, _parse_edf_file, _pad_array, _pad_transform
+from etomofiles.imod_utils import parse_edf
+from etomofiles.utils import validate_directory, _pad_array, _pad_transform, read_tlt, read_xf, safe_read_tlt, safe_read_xf
+from etomofiles.io import read
 
 
 class TestIO:
@@ -152,21 +152,19 @@ Setup.AxisA.ExcludeProjections=40
             mock_mrc.__enter__.return_value.header = mock_header
             
             with patch("mrcfile.open", return_value=mock_mrc):
-                result = _parse_edf_file(tmpdir)
+                result = parse_edf(tmpdir)
                 
-            ts_name, ts_ext, tilt_axis_angle, excluded_views, n_images = result
-            
-            assert ts_name == "TS_001"
-            assert ts_ext == "st"
-            assert tilt_axis_angle == 83.9
-            assert excluded_views == {40}
-            assert n_images == 40
+            assert result["basename"] == "TS_001"
+            assert result["tilt_series_extension"] == "st"
+            assert result["tilt_axis_angle"] == 83.9
+            assert result["excluded_views"] == {40}
+            assert result["n_images"] == 40
     
     def test_parse_edf_file_no_edf(self):
         """Test .edf file parsing when no .edf file exists."""
         with tempfile.TemporaryDirectory() as tmpdir:
             with pytest.raises(FileNotFoundError, match="No .edf file found"):
-                _parse_edf_file(Path(tmpdir))
+                parse_edf(Path(tmpdir))
     
     def test_parse_edf_file_missing_dataset_name(self):
         """Test .edf file parsing when DatasetName is missing."""
@@ -180,7 +178,7 @@ Setup.AxisA.ExcludeProjections=40
                 f.write(edf_content)
             
             with pytest.raises(ValueError, match="Setup.DatasetName not found"):
-                _parse_edf_file(tmpdir)
+                parse_edf(tmpdir)
     
     def test_pad_array_with_data(self):
         """Test array padding with data."""
@@ -257,8 +255,8 @@ Setup.AxisA.ExcludeProjections=40
         return tmpdir
     
     @patch("mrcfile.open")
-    @patch("etomofiles.reader.safe_read_tlt")
-    @patch("etomofiles.reader.safe_read_xf")
+    @patch("etomofiles.utils.safe_read_tlt")
+    @patch("etomofiles.utils.safe_read_xf")
     def test_read_success(self, mock_safe_read_xf, mock_safe_read_tlt, mock_mrcfile):
         """Test successful read operation."""
         # Mock mrcfile
@@ -321,7 +319,7 @@ class TestPackageImports:
     
     def test_package_exports(self):
         """Test that __all__ contains expected exports."""
-        expected_exports = ['read', 'read_tlt', 'read_xf', 'safe_read_tlt', 'safe_read_xf']
+        expected_exports = ['read', 'df_to_xf', 'read_tlt', 'read_xf', '__version__']
         for export in expected_exports:
             assert export in etomofiles.__all__
 
@@ -331,7 +329,7 @@ class TestRealDataIntegration:
     
     def test_read_real_etomo_data(self):
         """Test reading real etomo data from test directory."""
-        test_data_dir = Path(__file__).parent / "data" / "TS_001"
+        test_data_dir = Path(__file__).parent.parent / "test_data" / "TS_001"
         
         # Skip if test data doesn't exist
         if not test_data_dir.exists():
@@ -363,7 +361,7 @@ class TestRealDataIntegration:
     
     def test_individual_file_reading(self):
         """Test reading individual etomo files."""
-        test_data_dir = Path(__file__).parent / "data" / "TS_001"
+        test_data_dir = Path(__file__).parent.parent / "test_data" / "TS_001"
         
         if not test_data_dir.exists():
             pytest.skip("Test data directory not found")
@@ -385,7 +383,7 @@ class TestRealDataIntegration:
     
     def test_safe_reading_with_missing_files(self):
         """Test safe reading functions with missing optional files."""
-        test_data_dir = Path(__file__).parent / "data" / "TS_001"
+        test_data_dir = Path(__file__).parent.parent / "test_data" / "TS_001"
         
         if not test_data_dir.exists():
             pytest.skip("Test data directory not found")

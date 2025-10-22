@@ -12,14 +12,6 @@ A Python package for reading IMOD etomo alignment files into pandas DataFrames.
 
 `etomofiles` provides a way to extract metadata from etomo alignment directories and convert them into structured pandas DataFrames. 
 
-
-### Requirements
-
-- Python ≥ 3.10
-- numpy ≥ 1.19.0
-- pandas ≥ 1.3.0
-- mrcfile ≥ 1.3.0
-
 ## Installation
 
 ```bash
@@ -30,12 +22,12 @@ pip install etomofiles
 
 ```python
 import etomofiles
-from pathlib import Path
 
 # Read etomo alignment data
 df = etomofiles.read("/path/to/etomo/directory")
 
 print(df.head())
+
 ```
 
 ## DataFrame Columns
@@ -53,5 +45,35 @@ The resulting DataFrame contains the following columns:
 | `xf_a11`, `xf_a12`, `xf_a21`, `xf_a22`, `xf_dx`, `xf_dy` | xf transformation matrix elements |
 | `excluded` | Boolean indicating if view was excluded |
 
+## xf Utilities
+
+Get xf as numpy array:
+
+```python
+import etomofiles
+
+# Read alignment data
+df = etomofiles.read("TS_001/")
+
+# Get xf as numpy array:
+xf_matrices = etomofiles.df_to_xf(df)
+
+# Each matrix represents an affine transformation:
+# [[A11, A12, DX],
+#  [A21, A22, DY]]
+# where X' = A11*X + A12*Y + DX
+#       Y' = A21*X + A22*Y + DY
+
+# Also works directly with files
+xf_matrices = etomofiles.df_to_xf("TS_001/TS_001.xf")
+
+# Choose row ordering convention
+xf_xy = etomofiles.df_to_xf(df)  # default xy
+# Each matrix is [[A11, A12, DX], [A21, A22, DY]]
+
+xf_yx = etomofiles.df_to_xf(df, yx=True)  # yx
+# Each matrix is [[A22, A21, DY], [A12, A11, DX]]
+
+```
 
 

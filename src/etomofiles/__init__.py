@@ -1,17 +1,21 @@
-"""
-etomofiles: A Python package for reading IMOD etomo alignment files.
+"""A Python package for reading IMOD etomo alignment files into pandas DataFrames."""
 
-This package provides utilities to read etomo alignment metadata
-and expose it as pandas DataFrames.
-"""
+from importlib.metadata import PackageNotFoundError, version
 
-from .reader import read
-from .io import read_tlt, read_xf, safe_read_tlt, safe_read_xf
+from .io import read
+from .imod_utils import df_to_xf
+from .utils import read_tlt, read_xf
+
+try:
+    __version__ = version("etomofiles")
+except PackageNotFoundError:
+    __version__ = "unknown"
 
 __all__ = [
     "read",
-    "read_tlt", 
+    "df_to_xf",
+    "read_tlt",
     "read_xf",
-    "safe_read_tlt",
-    "safe_read_xf"
+    "__version__",
 ]
+
