@@ -121,6 +121,32 @@ def parse_edf(directory: Path) -> EdfMetadata:
     )
 
 
+def parse_tilt_com(directory: Path) -> float | None:
+    """Parse XAXISTILT from tilt.com in the etomo directory.
+
+    Parameters
+    ----------
+    directory : Path
+        Etomo directory (same location as the .edf file).
+
+    Returns
+    -------
+    float | None
+        XAXISTILT in degrees, or None if tilt.com is absent or the keyword is not set.
+    """
+    tilt_com = directory / "tilt.com"
+    if not tilt_com.exists():
+        return None
+    for line in tilt_com.read_text().splitlines():
+        parts = line.split()
+        if len(parts) == 2 and parts[0].upper() == "XAXISTILT":
+            try:
+                return float(parts[1])
+            except ValueError:
+                return None
+    return None
+
+
 def df_to_xf(
     data: Union[pd.DataFrame, np.ndarray, os.PathLike],
     yx: bool = False,
