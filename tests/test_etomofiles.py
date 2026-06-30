@@ -364,7 +364,7 @@ class TestRealDataIntegration:
         assert list(df.columns) == expected_columns
         
         # Verify data types and content
-        assert df['image_path'].dtype == 'object'
+        assert pd.api.types.is_string_dtype(df['image_path'])
         assert df['idx_tilt'].dtype in ['int64', 'int32']
         assert all(df['image_path'].str.contains('TS_001.st\\[\\d+\\]', regex=True))
         
