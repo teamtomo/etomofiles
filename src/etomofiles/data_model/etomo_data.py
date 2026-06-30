@@ -7,7 +7,7 @@ import numpy as np
 from pydantic import BaseModel, ConfigDict, Field
 
 from .. import utils
-from ..imod_utils import parse_edf
+from ..imod_utils import parse_edf, parse_tilt_com
 
 
 
@@ -25,10 +25,11 @@ class EtomoDataFile(BaseModel):
         xf: Transformation parameters from .xf file, shape (n, 6)
         tlt: tilt angles from .tlt file
         rawtlt: Raw tilt angles from .rawtlt file
-        xtilt: x-axis tilt information from .xtilt file
+        xtilt: per-view x-axis tilt from .xtilt file
+        xaxistilt: global x-axis tilt from tilt.com XAXISTILT keyword (degrees)
     """
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    
+
     basename: str
     tilt_series_extension: str
     tilt_axis_angle: float | None = None
@@ -38,6 +39,7 @@ class EtomoDataFile(BaseModel):
     tlt: np.ndarray | None = None
     rawtlt: np.ndarray | None = None
     xtilt: np.ndarray | None = None
+    xaxistilt: float | None = None
 
     @classmethod
     def from_directory(cls, directory: Path) -> "EtomoDataFile":
@@ -73,6 +75,7 @@ class EtomoDataFile(BaseModel):
             tlt=tlt_data,
             rawtlt=rawtlt_data,
             xtilt=xtilt_data,
+            xaxistilt=parse_tilt_com(directory),
         )
     
     def __repr__(self) -> str:

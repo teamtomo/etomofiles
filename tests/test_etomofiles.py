@@ -15,7 +15,7 @@ from unittest.mock import patch, mock_open, MagicMock
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import etomofiles
-from etomofiles.imod_utils import parse_edf
+from etomofiles.imod_utils import parse_edf, parse_tilt_com
 from etomofiles.utils import validate_directory, _pad_array, _pad_transform, read_tlt, read_xf, safe_read_tlt, safe_read_xf
 from etomofiles.io import read
 
@@ -160,6 +160,22 @@ Setup.AxisA.ExcludeProjections=40
             assert result["excluded_views"] == {40}
             assert result["n_images"] == 40
     
+    def test_parse_tilt_com_present(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir = Path(tmpdir)
+            (tmpdir / "tilt.com").write_text("TILTFILE foo.tlt\nXAXISTILT -1.65\nTHICKNESS 300\n")
+            assert parse_tilt_com(tmpdir) == -1.65
+
+    def test_parse_tilt_com_absent(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            assert parse_tilt_com(Path(tmpdir)) is None
+
+    def test_parse_tilt_com_keyword_missing(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir = Path(tmpdir)
+            (tmpdir / "tilt.com").write_text("TILTFILE foo.tlt\nTHICKNESS 300\n")
+            assert parse_tilt_com(tmpdir) is None
+
     def test_parse_edf_file_no_edf(self):
         """Test .edf file parsing when no .edf file exists."""
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -285,8 +301,8 @@ Setup.AxisA.ExcludeProjections=40
             assert len(result) == 2
             
             expected_columns = [
-                'image_path', 'idx_tilt', 'tilt_axis_angle', 'rawtlt', 'tlt', 
-                'xtilt', 'xf_a11', 'xf_a12', 'xf_a21', 'xf_a22', 'xf_dx', 'xf_dy', 'excluded'
+                'image_path', 'idx_tilt', 'tilt_axis_angle', 'rawtlt', 'tlt',
+                'xtilt', 'xaxistilt', 'xf_a11', 'xf_a12', 'xf_a21', 'xf_a22', 'xf_dx', 'xf_dy', 'excluded'
             ]
             assert list(result.columns) == expected_columns
             
@@ -342,8 +358,8 @@ class TestRealDataIntegration:
         assert len(df) > 0
         
         expected_columns = [
-            'image_path', 'idx_tilt', 'tilt_axis_angle', 'rawtlt', 'tlt', 
-            'xtilt', 'xf_a11', 'xf_a12', 'xf_a21', 'xf_a22', 'xf_dx', 'xf_dy', 'excluded'
+            'image_path', 'idx_tilt', 'tilt_axis_angle', 'rawtlt', 'tlt',
+            'xtilt', 'xaxistilt', 'xf_a11', 'xf_a12', 'xf_a21', 'xf_a22', 'xf_dx', 'xf_dy', 'excluded'
         ]
         assert list(df.columns) == expected_columns
         

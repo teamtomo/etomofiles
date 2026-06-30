@@ -133,7 +133,8 @@ def etomo_to_dataframe(etomo_data: "EtomoDataFile") -> pd.DataFrame:
         - tilt_axis_angle: Tilt axis rotation angle
         - rawtlt: Raw tilt angle (degrees)
         - tlt: Processed/corrected tilt angle (degrees)
-        - xtilt: Additional tilt information
+        - xtilt: per-view x-axis tilt from .xtilt file
+        - xaxistilt: global x-axis tilt from tilt.com XAXISTILT (degrees)
         - xf_a11, xf_a12, xf_a21, xf_a22, xf_dx, xf_dy: xf transformation matrix elements
         - excluded: Boolean indicating if view was excluded
     """
@@ -148,6 +149,7 @@ def etomo_to_dataframe(etomo_data: "EtomoDataFile") -> pd.DataFrame:
         'rawtlt': _pad_array(etomo_data.rawtlt, n_images),
         'tlt': _pad_array(etomo_data.tlt, n_images),
         'xtilt': _pad_array(etomo_data.xtilt, n_images),
+        'xaxistilt': etomo_data.xaxistilt,
         'xf_a11': _pad_transform(etomo_data.xf, n_images, 0),
         'xf_a12': _pad_transform(etomo_data.xf, n_images, 1),
         'xf_a21': _pad_transform(etomo_data.xf, n_images, 2),
