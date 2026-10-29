@@ -1,39 +1,49 @@
 """Main container data model for IMOD etomo alignment data."""
 
 from pathlib import Path
-from typing import Set
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field
 
-from .. import utils
-from ..imod_utils import parse_edf, parse_tilt_com
-
+from etomofiles import utils
+from etomofiles.imod_utils import parse_edf, parse_tilt_com
 
 
 class EtomoDataFile(BaseModel):
     """Data model for IMOD etomo alignment data.
-    
+
     This is the main container that holds all parsed etomo file data.
-    
-    Attributes:
-        basename: Tilt series name (e.g., 'TS_001')
-        tilt_series_extension: File extension (e.g., 'st', 'mrc')
-        tilt_axis_angle: Tilt axis rotation angle (degrees)
-        excluded_views: Set of view indices (1-indexed) to exclude
-        n_images: Total number of images in the tilt series
-        xf: Transformation parameters from .xf file, shape (n, 6)
-        tlt: tilt angles from .tlt file
-        rawtlt: Raw tilt angles from .rawtlt file
-        xtilt: per-view x-axis tilt from .xtilt file
-        xaxistilt: global x-axis tilt from tilt.com XAXISTILT keyword (degrees)
+
+    Attributes
+    ----------
+    basename : str
+        Tilt series name (e.g., 'TS_001')
+    tilt_series_extension : str
+        File extension (e.g., 'st', 'mrc')
+    tilt_axis_angle : float | None
+        Tilt axis rotation angle (degrees)
+    excluded_views : set[int]
+        Set of view indices (1-indexed) to exclude
+    n_images : int
+        Total number of images in the tilt series
+    xf : np.ndarray | None
+        Transformation parameters from .xf file, shape (n, 6)
+    tlt : np.ndarray | None
+        Tilt angles from .tlt file
+    rawtlt : np.ndarray | None
+        Raw tilt angles from .rawtlt file
+    xtilt : np.ndarray | None
+        Per-view x-axis tilt from .xtilt file
+    xaxistilt : float | None
+        Global x-axis tilt from tilt.com XAXISTILT keyword (degrees)
     """
+
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     basename: str
     tilt_series_extension: str
     tilt_axis_angle: float | None = None
-    excluded_views: Set[int] = Field(default_factory=set)
+    excluded_views: set[int] = Field(default_factory=set)
     n_images: int = 0
     xf: np.ndarray | None = None
     tlt: np.ndarray | None = None
@@ -44,27 +54,26 @@ class EtomoDataFile(BaseModel):
     @classmethod
     def from_directory(cls, directory: Path) -> "EtomoDataFile":
         """Load etomo alignment data from a directory.
-        
+
         Parameters
         ----------
         directory : Path
             Directory containing etomo alignment files
-            
+
         Returns
         -------
         EtomoDataFile
             Parsed etomo alignment data
         """
-        
         edf_metadata = parse_edf(directory)
-        
+
         basename = edf_metadata["basename"]
-        
+
         tlt_data = utils.safe_read_tlt(directory / f"{basename}.tlt")
         rawtlt_data = utils.safe_read_tlt(directory / f"{basename}.rawtlt")
         xtilt_data = utils.safe_read_tlt(directory / f"{basename}.xtilt")
         xf_data = utils.safe_read_xf(directory / f"{basename}.xf")
-        
+
         return cls(
             basename=basename,
             tilt_series_extension=edf_metadata["tilt_series_extension"],
@@ -77,10 +86,12 @@ class EtomoDataFile(BaseModel):
             xtilt=xtilt_data,
             xaxistilt=parse_tilt_com(directory),
         )
-    
+
     def __repr__(self) -> str:
         """Return string representation."""
-        return (f"EtomoDataFile(basename='{self.basename}', "
-                f"n_images={self.n_images}, "
-                f"has_tlt={self.tlt is not None}, "
-                f"has_xf={self.xf is not None})")
+        return (
+            f"EtomoDataFile(basename='{self.basename}', "
+            f"n_images={self.n_images}, "
+            f"has_tlt={self.tlt is not None}, "
+            f"has_xf={self.xf is not None})"
+        )
