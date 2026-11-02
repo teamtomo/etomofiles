@@ -2,8 +2,8 @@
 
 from importlib.metadata import PackageNotFoundError, version
 
-from .io import read
 from .imod_utils import df_to_xf
+from .io import read
 from .utils import read_tlt, read_xf
 
 try:
@@ -12,10 +12,9 @@ except PackageNotFoundError:
     __version__ = "unknown"
 
 __all__ = [
-    "read",
+    "__version__",
     "df_to_xf",
+    "read",
     "read_tlt",
     "read_xf",
-    "__version__",
 ]
-

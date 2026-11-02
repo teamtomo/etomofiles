@@ -10,12 +10,12 @@ from .utils import etomo_to_dataframe, validate_directory
 
 def read(directory: str | Path) -> pd.DataFrame:
     """Read etomo alignment metadata from a directory into a pandas DataFrame.
-    
+
     Parameters
     ----------
     directory : str or Path
         Path to the directory containing etomo alignment files
-        
+
     Returns
     -------
     pd.DataFrame
@@ -24,9 +24,10 @@ def read(directory: str | Path) -> pd.DataFrame:
         - idx_tilt: Index of the tilt image (0-based)
         - tilt_axis_angle: Tilt axis rotation angle
         - rawtlt: Raw tilt angle (degrees)
-        - tlt: Processed/corrected tilt angle (degrees)  
+        - tlt: Processed/corrected tilt angle (degrees)
         - xtilt: Additional tilt information
-        - xf_a11, xf_a12, xf_a21, xf_a22, xf_dx, xf_dy: xf transformation matrix elements
+        - xf_a11, xf_a12, xf_a21, xf_a22, xf_dx, xf_dy: xf transformation matrix
+          elements
         - excluded: Boolean indicating if view was excluded
     """
     # Validate directory
